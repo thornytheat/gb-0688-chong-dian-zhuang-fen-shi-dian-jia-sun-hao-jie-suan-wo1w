@@ -6,7 +6,7 @@ from app.errors import DomainError
 from app.normalize import serial
 from app.pipeline import run
 from app import store
-from app.web import view
+from app.web import view,derived_view
 def create_app():
     app=Flask(__name__);app.config["MAX_CONTENT_LENGTH"]=MAX_BYTES
     app.json.ensure_ascii=False
@@ -20,6 +20,8 @@ def create_app():
     def home(): return redirect("/m/1")
     @app.get("/m/<int:stage>")
     def page(stage): return view(stage)
+    @app.get("/m/8")
+    def derived_page(): return derived_view()
     @app.post("/api/runs")
     def start():
         if request.files:
@@ -55,5 +57,6 @@ def create_app():
             writer.writerow([result["manifest"]["run_id"],row["line"],row["key"],row["code"],json.dumps(row,ensure_ascii=False)])
         return Response("\ufeff"+stream.getvalue(),content_type="text/csv; charset=utf-8",headers={"Content-Disposition":"attachment; filename=evidence.csv"})
     for n,name in enumerate(STAGES,1): app.register_blueprint(import_module(f"app.modules.m{n}_{name}.handler").bp)
+    app.register_blueprint(import_module("app.modules.m8_derived.handler").bp)
     return app
 app=create_app()

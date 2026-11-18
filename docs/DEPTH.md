@@ -15,6 +15,7 @@
 | M5 费用重算 | 精确计算并分配分币 | `/api/m5` | `app/modules/m5_fees/rules.py` `app/modules/m5_fees/service.py` | `tests/test_m5_fees.py` |
 | M6 账单对照 | 对照账单与损耗异常 | `/api/m6` | `app/modules/m6_bills/rules.py` `app/modules/m6_bills/service.py` | `tests/test_m6_bills.py` |
 | M7 结算批次 | 核对电量行数并复核 | `/api/m7` | `app/modules/m7_batches/rules.py` `app/modules/m7_batches/service.py` | `tests/test_m7_batches.py` |
+| M8 补读派生 | 由原批次派生合并版本并切换唯一当前账 | `/api/m8` | `app/modules/m8_derived/rules.py` `app/modules/m8_derived/service.py` | `tests/test_m8_derived.py` |
 
 ## 陷阱登记
 
@@ -29,6 +30,13 @@
 | TRAP-23 | 分时端点 | 数值或归属错误 | 显式契约和守恒检查 | `app/modules/m3_split/rules.py` | `tests/test_m3_split.py::test_boundary_split` |
 | TRAP-24 | 分币尾差 | 数值或归属错误 | 显式契约和守恒检查 | `app/modules/m5_fees/rules.py` | `tests/test_m5_fees.py::test_pennies_conserved` |
 | TRAP-25 | 费率版本重叠 | 数值或归属错误 | 显式契约和守恒检查 | `app/modules/m2_tariffs/rules.py` | `tests/test_m2_tariffs.py::test_overlap_versions` |
+| TRAP-26 | 补读首尾相接 | 误判为重叠而丢弃有效时段 | 主表优先占用，后备表只填未覆盖时段 | `app/modules/m8_derived/rules.py` | `tests/test_m8_derived.py::test_head_to_tail_merge_is_seamless` |
+| TRAP-27 | 补读少量重叠 | 重复计电或直接改旧凭证 | 按交集时长比例隔离并保留 `OVERLAP` 依据 | `app/modules/m8_derived/rules.py` | `tests/test_m8_derived.py::test_overlap_is_isolated_not_double_counted` |
+| TRAP-28 | 直接合并改旧账 | 已复核日结凭证被覆盖 | 只派生新版本，原批次只读 | `app/modules/m8_derived/service.py` | `tests/test_m8_derived.py::test_original_ledger_unaffected_by_derivation` |
+| TRAP-29 | 多版本并列 | 站损无法结算 | 站点唯一当前账指针，核对通过才切换 | `app/store.py` `app/modules/m8_derived/service.py` | `tests/test_m8_derived.py::test_reconcile_passes_and_switches` |
+| TRAP-30 | 切换写入失败 | 新旧账同时缺失 | 同事务切换，失败恢复旧版账单并留痕 | `app/store.py` | `tests/test_m8_derived.py::test_failed_write_restores_old_bill` |
+| TRAP-31 | 中断续跑 | 重复生成版本或漏时段 | 逐确认时段落库，按内容指纹复用版本 | `app/modules/m8_derived/service.py` | `tests/test_m8_derived.py::test_interrupted_run_resumes` `::test_duplicate_backfill_reuses_version` |
+| TRAP-32 | 补读越界 | 无订单区间被计入站损 | 核对拦截 `RANGE`，不得切换 | `app/modules/m8_derived/service.py` | `tests/test_m8_derived.py::test_scope_overflow_blocks_switch` |
 
 ## 对账规则
 
